@@ -1277,6 +1277,39 @@
       return `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(text)}`;
     };
 
+    const applySampleDefaults = () => {
+      form.elements.date.value = "2026-01-16";
+      form.elements.foreman.value = "Хабиб";
+      form.elements.shift.value = "1";
+      form.elements.tag.value = "Муссо";
+
+      form.elements.shiftStart.value = "09:00";
+      form.elements.shiftEnd.value = "17:00";
+      form.elements.shiftLunch.checked = true;
+
+      form.elements.workersOwn.value = 1;
+      form.elements.workersHire.value = 0;
+      form.elements.workersBase.value = 0;
+      form.elements.workersStart.value = "09:00";
+      form.elements.workersEnd.value = "17:00";
+      form.elements.workersLunch.checked = true;
+
+      form.elements.workTypes.value = "уборка";
+      form.elements.addresses.value = "Ленина, д.1";
+      form.elements.note.value = "";
+
+      techList.innerHTML = "";
+      techList.appendChild(
+        createTechRow({
+          name: "JCB",
+          driver: "Хабиб",
+          start: "09:00",
+          end: "17:00",
+          lunch: true,
+        })
+      );
+    };
+
     const openShare = () => {
       const text = buildReportText();
       if (!text) {
@@ -1293,16 +1326,17 @@
     document.getElementById("open-share").addEventListener("click", openShare);
 
     const loadedFromTelegram = loadFromTelegram();
-    if (!loadedFromTelegram) {
-      loadFromUrl();
-    }
+    const loadedFromUrl = loadedFromTelegram ? false : loadFromUrl();
+    const hasLoadedData = loadedFromTelegram || loadedFromUrl;
 
     const now = new Date();
     if (form.elements.date && !form.elements.date.value) {
       form.elements.date.value = now.toISOString().slice(0, 10);
     }
 
-    if (!techList.childElementCount) {
+    if (!hasLoadedData) {
+      applySampleDefaults();
+    } else if (!techList.childElementCount) {
       techList.appendChild(createTechRow({ lunch: true }));
     }
   </script>
