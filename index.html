@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Отчет смены → Telegram Share</title>
+  <meta name="description" content="Форма для генерации текста отчета и отправки через Telegram Share." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=Unbounded:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --ink: #1f252c;
+      --muted: #5a646f;
+      --card: #fffaf2;
+      --accent: #0d7a71;
+      --accent-2: #f06a4f;
+      --accent-3: #f0c94f;
+      --line: #e7dfd2;
+      --shadow: 0 18px 40px rgba(20, 24, 28, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1100px 600px at 10% -10%, #ffe7c2, transparent),
+        radial-gradient(900px 500px at 95% 10%, #b9efe8, transparent),
+        linear-gradient(180deg, #f6f2ea, #f3efe6);
+      min-height: 100vh;
+    }
+
+    .page {
+      position: relative;
+      overflow: hidden;
+      padding: 32px 18px 60px;
+    }
+
+    .page::before,
+    .page::after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      filter: blur(0px);
+      opacity: 0.25;
+      z-index: 0;
+    }
+
+    .page::before {
+      background: #f06a4f;
+      top: -120px;
+      right: -120px;
+    }
+
+    .page::after {
+      background: #0d7a71;
+      bottom: -160px;
+      left: -140px;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+    }
+
+    h1 {
+      font-family: "Unbounded", "IBM Plex Sans", sans-serif;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.05;
+      margin: 0;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 640px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel-title {
+      font-family: "Unbounded", "IBM Plex Sans", sans-serif;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      display: inline-block;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    textarea {
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: 15px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(13, 122, 113, 0.15);
+    }
+
+    .inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #fff3dd;
+      color: #7a4b2a;
+      font-size: 12px;
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .switch input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 12px 24px rgba(13, 122, 113, 0.25);
+    }
+
+    .ghost {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .accent {
+      background: var(--accent-2);
+      color: #fff;
+    }
+
+    .section-note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .tech-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .tech-item {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed #f0c94f;
+      background: #fffdf8;
+    }
+
+    .preview {
+      background: #14171c;
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: "IBM Plex Sans", sans-serif;
+      white-space: pre-wrap;
+      min-height: 160px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: #6b6f76;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      animation: fadeIn 0.7s ease forwards;
+    }
+
+    .reveal.delay-1 {
+      animation-delay: 0.08s;
+    }
+
+    .reveal.delay-2 {
+      animation-delay: 0.16s;
+    }
+
+    .reveal.delay-3 {
+      animation-delay: 0.24s;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .panel {
+        padding: 16px;
+      }
+
+      button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="container">
+      <header class="reveal">
+        <div class="pill">Telegram miniapp • GitHub Pages</div>
+        <h1>Отчет смены за 1 минуту</h1>
+        <div class="subtitle">
+          Заполните форму, сгенерируйте текст и откройте ссылку Share — Telegram предложит
+          отправить пост в общий чат.
+        </div>
+      </header>
+
+      <form id="shift-form" class="panel reveal delay-1">
+        <div class="panel-title"><span></span>Основные данные</div>
+        <div class="grid two">
+          <label>
+            Дата
+            <input type="date" name="date" required />
+          </label>
+          <label>
+            Имя бригадира
+            <input type="text" name="foreman" placeholder="Например: Хабиб" required />
+          </label>
+          <label>
+            Смена
+            <input type="text" name="shift" placeholder="Например: 1" />
+          </label>
+          <label>
+            Хэштег / объект
+            <input type="text" name="tag" placeholder="Например: Муссо" />
+          </label>
+        </div>
+
+        <div class="grid three">
+          <label>
+            Смена: начало
+            <input type="time" name="shiftStart" />
+          </label>
+          <label>
+            Смена: конец
+            <input type="time" name="shiftEnd" />
+          </label>
+          <label class="switch">
+            <input type="checkbox" name="shiftLunch" checked />
+            Смена с обедом
+          </label>
+        </div>
+
+        <div class="panel-title"><span></span>Разнорабочие</div>
+        <div class="grid three">
+          <label>
+            Свои
+            <input type="number" min="0" name="workersOwn" value="0" />
+          </label>
+          <label>
+            Наемники
+            <input type="number" min="0" name="workersHire" value="0" />
+          </label>
+          <label>
+            На базе
+            <input type="number" min="0" name="workersBase" value="0" />
+          </label>
+        </div>
+
+        <div class="grid three">
+          <label>
+            Разнорабочие: начало
+            <input type="time" name="workersStart" />
+          </label>
+          <label>
+            Разнорабочие: конец
+            <input type="time" name="workersEnd" />
+          </label>
+          <label class="switch">
+            <input type="checkbox" name="workersLunch" checked />
+            С обедом
+          </label>
+        </div>
+
+        <div class="panel-title"><span></span>Техника</div>
+        <div class="section-note">Можно добавить несколько единиц техники.</div>
+        <div id="tech-list" class="tech-list"></div>
+        <div class="btn-row">
+          <button class="ghost" type="button" id="add-tech">Добавить технику</button>
+        </div>
+
+        <div class="panel-title"><span></span>Работы и адреса</div>
+        <div class="grid">
+          <label>
+            Виды работ (через запятую или с новой строки)
+            <textarea name="workTypes" placeholder="Например: уборка, расчистка проезжей части"></textarea>
+          </label>
+          <label>
+            Адреса выполненных работ (каждая строка — новый адрес)
+            <textarea name="addresses" placeholder="Например: 13285035 Ленина, д.19 ✅"></textarea>
+          </label>
+        </div>
+
+        <div class="panel-title"><span></span>Дополнительно</div>
+        <div class="grid">
+          <label>
+            Комментарий
+            <textarea name="note" placeholder="Что важно отметить"></textarea>
+          </label>
+        </div>
+      </form>
+
+      <section class="panel reveal delay-2">
+        <div class="panel-title"><span></span>Предпросмотр</div>
+        <div id="preview" class="preview">Заполните форму, чтобы увидеть текст отчета.</div>
+        <div class="btn-row">
+          <button class="primary" type="button" id="open-share">Открыть Share в Telegram</button>
+          <button class="ghost" type="button" id="copy-text">Скопировать текст</button>
+          <button class="accent" type="button" id="fill-sample">Заполнить примером</button>
+        </div>
+        <div class="footer-note">Share откроется в новом окне, а текст будет уже заполнен.</div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("shift-form");
+    const preview = document.getElementById("preview");
+    const techList = document.getElementById("tech-list");
+    const addTechButton = document.getElementById("add-tech");
+
+    const createTechRow = (data = {}) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "tech-item";
+      wrapper.innerHTML = `
+        <div class="grid two">
+          <label>
+            Наименование техники
+            <input type="text" name="techName" placeholder="Например: JCB" value="${data.name || ""}" />
+          </label>
+          <label>
+            Имя водителя
+            <input type="text" name="techDriver" placeholder="Например: Хабиб" value="${data.driver || ""}" />
+          </label>
+        </div>
+        <div class="grid three">
+          <label>
+            Начало работы
+            <input type="time" name="techStart" value="${data.start || ""}" />
+          </label>
+          <label>
+            Конец работы
+            <input type="time" name="techEnd" value="${data.end || ""}" />
+          </label>
+          <label class="switch">
+            <input type="checkbox" name="techLunch" ${data.lunch ? "checked" : ""} />
+            С обедом
+          </label>
+        </div>
+        <button class="ghost" type="button" data-remove>Удалить</button>
+      `;
+
+      wrapper.querySelector("[data-remove]").addEventListener("click", () => {
+        wrapper.remove();
+        updatePreview();
+      });
+
+      wrapper.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", updatePreview);
+        input.addEventListener("change", updatePreview);
+      });
+
+      return wrapper;
+    };
+
+    const formatLunch = (checked) => (checked ? "с обедом" : "без обеда");
+
+    const formatRange = (start, end) => {
+      if (!start && !end) return "";
+      if (start && end) return `с ${start} до ${end}`;
+      if (start) return `с ${start}`;
+      return `до ${end}`;
+    };
+
+    const sanitizeLines = (text) =>
+      text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+    const formatDate = (value) => {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+      if (!match) return value;
+      return `${match[3]}.${match[2]}.${match[1].slice(-2)}`;
+    };
+
+    const updatePreview = () => {
+      const data = new FormData(form);
+      const date = formatDate(data.get("date") || "");
+      const foreman = data.get("foreman") || "";
+      const shift = data.get("shift") || "";
+      const tag = data.get("tag") || "";
+
+      const shiftRange = formatRange(data.get("shiftStart"), data.get("shiftEnd"));
+      const shiftLunch = formatLunch(data.get("shiftLunch"));
+      const shiftHasTime = data.get("shiftStart") || data.get("shiftEnd");
+
+      const workersOwn = Number(data.get("workersOwn") || 0);
+      const workersHire = Number(data.get("workersHire") || 0);
+      const workersBase = Number(data.get("workersBase") || 0);
+      const workersRange = formatRange(data.get("workersStart"), data.get("workersEnd"));
+      const workersLunch = formatLunch(data.get("workersLunch"));
+      const workersHasTime = data.get("workersStart") || data.get("workersEnd");
+
+      const workTypes = sanitizeLines(data.get("workTypes") || "");
+      const addresses = sanitizeLines(data.get("addresses") || "");
+      const note = (data.get("note") || "").trim();
+
+      const techRows = Array.from(techList.querySelectorAll(".tech-item")).map((row) => {
+        const name = row.querySelector("[name=techName]").value.trim();
+        const driver = row.querySelector("[name=techDriver]").value.trim();
+        const start = row.querySelector("[name=techStart]").value;
+        const end = row.querySelector("[name=techEnd]").value;
+        const lunch = row.querySelector("[name=techLunch]").checked;
+
+        if (!name && !driver && !start && !end) return null;
+
+        const time = formatRange(start, end);
+        const lunchText = formatLunch(lunch);
+        const driverText = driver ? ` (${driver})` : "";
+        const timeText = time ? `${time}` : "";
+        const lunchSuffix = timeText ? `, ${lunchText}` : lunchText;
+
+        return `${name || "Техника"}${driverText}${timeText ? " " + timeText : ""}${lunchSuffix ? " " + lunchSuffix : ""}`.trim();
+      });
+
+      const techLines = techRows.filter(Boolean);
+
+      const workerParts = [];
+      if (workersOwn) workerParts.push(`${workersOwn} свои`);
+      if (workersHire) workerParts.push(`${workersHire} наемники`);
+      if (workersBase) workerParts.push(`${workersBase} свои на базе`);
+
+      const lines = [];
+      if (date) lines.push(date);
+      if (tag) lines.push(`#${tag}${shift ? ` (смена ${shift})` : ""}`);
+      if (foreman) lines.push(`Бригадир: ${foreman}`);
+
+      if (workerParts.length) {
+        lines.push("");
+        lines.push(`Разнорабочие: ${workerParts.join(" + ")}`);
+      }
+
+      if (workersHasTime) {
+        lines.push(`Время работы: ${workersRange || ""}${workersRange ? ", " : ""}${workersLunch}`.trim());
+      }
+
+      if (shiftHasTime) {
+        lines.push(`Смена: ${shiftRange || ""}${shiftRange ? ", " : ""}${shiftLunch}`.trim());
+      }
+
+      if (techLines.length) {
+        lines.push("");
+        lines.push("Техника:");
+        techLines.forEach((line) => lines.push(line));
+      }
+
+      if (workTypes.length) {
+        lines.push("");
+        lines.push(`Работы: ${workTypes.join(", ")}`);
+      }
+
+      if (addresses.length) {
+        lines.push("");
+        addresses.forEach((line) => lines.push(line));
+      }
+
+      if (note) {
+        lines.push("");
+        lines.push(note);
+      }
+
+      const text = lines.join("\n").trim();
+      preview.textContent = text || "Заполните форму, чтобы увидеть текст отчета.";
+    };
+
+    const base64UrlEncode = (value) =>
+      btoa(unescape(encodeURIComponent(value)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+    const base64UrlDecode = (value) => {
+      const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+      const padLength = padded.length % 4 ? 4 - (padded.length % 4) : 0;
+      const base64 = padded + "=".repeat(padLength);
+      return decodeURIComponent(escape(atob(base64)));
+    };
+
+    const getBaseUrl = () => {
+      const { origin, pathname, href } = window.location;
+      if (origin && origin !== "null" && origin.startsWith("http")) {
+        return `${origin}${pathname}`;
+      }
+      const cleanHref = href.split("?")[0].split("#")[0];
+      return cleanHref.startsWith("http") ? cleanHref : "https://t.me";
+    };
+
+    const collectFormData = () => {
+      const tech = Array.from(techList.querySelectorAll(".tech-item"))
+        .map((row) => {
+          const name = row.querySelector("[name=techName]").value.trim();
+          const driver = row.querySelector("[name=techDriver]").value.trim();
+          const start = row.querySelector("[name=techStart]").value || "";
+          const end = row.querySelector("[name=techEnd]").value || "";
+          const lunch = row.querySelector("[name=techLunch]").checked;
+
+          if (!name && !driver && !start && !end) return null;
+
+          return { name, driver, start, end, lunch };
+        })
+        .filter(Boolean);
+
+      return {
+        date: form.elements.date.value || "",
+        foreman: form.elements.foreman.value.trim(),
+        shift: form.elements.shift.value.trim(),
+        tag: form.elements.tag.value.trim(),
+        shiftStart: form.elements.shiftStart.value || "",
+        shiftEnd: form.elements.shiftEnd.value || "",
+        shiftLunch: form.elements.shiftLunch.checked,
+        workersOwn: Number(form.elements.workersOwn.value || 0),
+        workersHire: Number(form.elements.workersHire.value || 0),
+        workersBase: Number(form.elements.workersBase.value || 0),
+        workersStart: form.elements.workersStart.value || "",
+        workersEnd: form.elements.workersEnd.value || "",
+        workersLunch: form.elements.workersLunch.checked,
+        workTypes: form.elements.workTypes.value.trim(),
+        addresses: form.elements.addresses.value.trim(),
+        note: form.elements.note.value.trim(),
+        tech,
+      };
+    };
+
+    const applyFormData = (payload) => {
+      if (!payload || typeof payload !== "object") return;
+
+      if (payload.date) form.elements.date.value = payload.date;
+      if (payload.foreman) form.elements.foreman.value = payload.foreman;
+      if (payload.shift) form.elements.shift.value = payload.shift;
+      if (payload.tag) form.elements.tag.value = payload.tag;
+
+      if (payload.shiftStart) form.elements.shiftStart.value = payload.shiftStart;
+      if (payload.shiftEnd) form.elements.shiftEnd.value = payload.shiftEnd;
+      if (typeof payload.shiftLunch === "boolean") {
+        form.elements.shiftLunch.checked = payload.shiftLunch;
+      }
+
+      if (payload.workersOwn !== undefined) form.elements.workersOwn.value = payload.workersOwn;
+      if (payload.workersHire !== undefined) form.elements.workersHire.value = payload.workersHire;
+      if (payload.workersBase !== undefined) form.elements.workersBase.value = payload.workersBase;
+      if (payload.workersStart) form.elements.workersStart.value = payload.workersStart;
+      if (payload.workersEnd) form.elements.workersEnd.value = payload.workersEnd;
+      if (typeof payload.workersLunch === "boolean") {
+        form.elements.workersLunch.checked = payload.workersLunch;
+      }
+
+      if (payload.workTypes) form.elements.workTypes.value = payload.workTypes;
+      if (payload.addresses) form.elements.addresses.value = payload.addresses;
+      if (payload.note) form.elements.note.value = payload.note;
+
+      techList.innerHTML = "";
+      if (Array.isArray(payload.tech) && payload.tech.length) {
+        payload.tech.forEach((item) => techList.appendChild(createTechRow(item)));
+      }
+
+      if (!techList.childElementCount) {
+        techList.appendChild(createTechRow({ lunch: true }));
+      }
+    };
+
+    const loadFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get("data");
+      if (!encoded) return false;
+      try {
+        const json = base64UrlDecode(encoded);
+        const payload = JSON.parse(json);
+        applyFormData(payload);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
+
+    const getShareUrl = (text) => {
+      const payload = collectFormData();
+      const data = base64UrlEncode(JSON.stringify(payload));
+      const baseUrl = getBaseUrl();
+      const shareLink = baseUrl === "https://t.me" ? baseUrl : `${baseUrl}?data=${encodeURIComponent(data)}`;
+      return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
+    };
+
+    const openShare = () => {
+      const text = preview.textContent.trim();
+      if (!text || text === "Заполните форму, чтобы увидеть текст отчета.") {
+        alert("Сначала заполните форму.");
+        return;
+      }
+      window.location.href = getShareUrl(text);
+    };
+
+    const copyText = async () => {
+      const text = preview.textContent.trim();
+      if (!text || text === "Заполните форму, чтобы увидеть текст отчета.") {
+        alert("Сначала заполните форму.");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("Текст скопирован.");
+      } catch (err) {
+        alert("Не удалось скопировать текст.");
+      }
+    };
+
+    const fillSample = () => {
+      form.elements.date.value = "2026-01-16";
+      form.elements.foreman.value = "Хабиб";
+      form.elements.shift.value = "1";
+      form.elements.tag.value = "Муссо";
+      form.elements.shiftStart.value = "09:00";
+      form.elements.shiftEnd.value = "17:00";
+      form.elements.shiftLunch.checked = true;
+
+      form.elements.workersOwn.value = 3;
+      form.elements.workersHire.value = 5;
+      form.elements.workersBase.value = 2;
+      form.elements.workersStart.value = "09:00";
+      form.elements.workersEnd.value = "17:00";
+      form.elements.workersLunch.checked = true;
+
+      techList.innerHTML = "";
+      techList.appendChild(
+        createTechRow({
+          name: "JCB",
+          driver: "Хабиб",
+          start: "09:00",
+          end: "17:00",
+          lunch: true,
+        })
+      );
+
+      form.elements.workTypes.value = "доброделы уборка, расчистка проезжей части";
+      form.elements.addresses.value = `24. 13285035 Ленина, д.19,17, ✅\n25. 13285206 Ленина, д.19,17 ✅\n26. 13236354 Ленина, д.19,17 ✅\n27. 13275700 Ленина, д.19,17 ✅\n13235630 Ленина 19, ✅\n13235681 Ленина 19, ✅\n13280306 Ленина 23, ❌\n29. 13284592 Ленина, д.23, Юбилейная, д.8 ❌\n30. 13284131 Ленина, д.19,17, ❌\n\n40. 13276451 Крупской, д.12,12А,16 ❌\n41. 13268351 Крупской, д.12,12А,16 ❌\n42. 13268351 Крупской, д.12,12А,16 ❌\n13295190 Крупской, ❌\n13242008 Крупской, ❌\n13231065 Крупской, ❌\n13235704 Крупской, ❌\n13283989 Крупской, ❌\n13295190 Крупской, ❌\n13242008 Крупской, ❌\n13295190 Юбилейная 4, ❌`;
+      form.elements.note.value = "";
+
+      updatePreview();
+    };
+
+    addTechButton.addEventListener("click", () => {
+      techList.appendChild(createTechRow({ lunch: true }));
+      updatePreview();
+    });
+
+    form.addEventListener("input", updatePreview);
+    form.addEventListener("change", updatePreview);
+
+    document.getElementById("open-share").addEventListener("click", openShare);
+    document.getElementById("copy-text").addEventListener("click", copyText);
+    document.getElementById("fill-sample").addEventListener("click", fillSample);
+
+    loadFromUrl();
+
+    const now = new Date();
+    if (form.elements.date && !form.elements.date.value) {
+      form.elements.date.value = now.toISOString().slice(0, 10);
+    }
+
+    if (!techList.childElementCount) {
+      techList.appendChild(createTechRow({ lunch: true }));
+    }
+    updatePreview();
+  </script>
+</body>
+</html>
