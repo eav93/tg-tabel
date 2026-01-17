@@ -1270,7 +1270,12 @@
       return `https://t.me/${BOT_USERNAME}/${APP_SHORTNAME}?startapp=${head}&d=${tail}`;
     };
 
-    const getShareUrl = (text) => `https://t.me/share/url?text=${encodeURIComponent(text)}`;
+    const getShareUrl = (text) => {
+      const packed = packMinimalPayload();
+      const data = lzCompressToUrl(JSON.stringify(packed));
+      const deepLink = getMiniAppDeepLink(data);
+      return `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(text)}`;
+    };
 
     const applySampleDefaults = () => {
       form.elements.date.value = "2026-01-16";
@@ -1311,12 +1316,7 @@
         alert("Сначала заполните форму.");
         return;
       }
-      const shareUrl = getShareUrl(text);
-      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
-        window.Telegram.WebApp.openTelegramLink(shareUrl);
-      } else {
-        window.location.href = shareUrl;
-      }
+      window.location.href = getShareUrl(text);
     };
 
     addTechButton.addEventListener("click", () => {
