@@ -255,16 +255,6 @@
       background: #fffdf8;
     }
 
-    .preview {
-      background: #14171c;
-      color: #fff;
-      border-radius: var(--radius);
-      padding: 16px;
-      font-family: "IBM Plex Sans", sans-serif;
-      white-space: pre-wrap;
-      min-height: 160px;
-    }
-
     .footer-note {
       font-size: 12px;
       color: #6b6f76;
@@ -310,15 +300,6 @@
 <body>
   <div class="page">
     <div class="container">
-      <header class="reveal">
-        <div class="pill">Telegram miniapp • GitHub Pages</div>
-        <h1>Отчет смены за 1 минуту</h1>
-        <div class="subtitle">
-          Заполните форму, сгенерируйте текст и откройте ссылку Share — Telegram предложит
-          отправить пост в общий чат.
-        </div>
-      </header>
-
       <form id="shift-form" class="panel reveal delay-1">
         <div class="panel-title"><span></span>Основные данные</div>
         <div class="grid two">
@@ -415,21 +396,15 @@
       </form>
 
       <section class="panel reveal delay-2">
-        <div class="panel-title"><span></span>Предпросмотр</div>
-        <div id="preview" class="preview">Заполните форму, чтобы увидеть текст отчета.</div>
         <div class="btn-row">
-          <button class="primary" type="button" id="open-share">Открыть Share в Telegram</button>
-          <button class="ghost" type="button" id="copy-text">Скопировать текст</button>
-          <button class="accent" type="button" id="fill-sample">Заполнить примером</button>
+          <button class="primary" type="button" id="open-share">Отправить</button>
         </div>
-        <div class="footer-note">Share откроется в Telegram, а текст будет уже заполнен.</div>
       </section>
     </div>
   </div>
 
   <script>
     const form = document.getElementById("shift-form");
-    const preview = document.getElementById("preview");
     const techList = document.getElementById("tech-list");
     const addTechButton = document.getElementById("add-tech");
 
@@ -470,12 +445,6 @@
 
       wrapper.querySelector("[data-remove]").addEventListener("click", () => {
         wrapper.remove();
-        updatePreview();
-      });
-
-      wrapper.querySelectorAll("input").forEach((input) => {
-        input.addEventListener("input", updatePreview);
-        input.addEventListener("change", updatePreview);
       });
 
       return wrapper;
@@ -502,7 +471,7 @@
       return `${match[3]}.${match[2]}.${match[1].slice(-2)}`;
     };
 
-    const updatePreview = () => {
+    const buildReportText = () => {
       const data = new FormData(form);
       const date = formatDate(data.get("date") || "");
       const foreman = data.get("foreman") || "";
@@ -588,8 +557,7 @@
         lines.push(note);
       }
 
-      const text = lines.join("\n").trim();
-      preview.textContent = text || "Заполните форму, чтобы увидеть текст отчета.";
+      return lines.join("\n").trim();
     };
 
     const LZString = (() => {
@@ -1144,36 +1112,46 @@
         : [],
     ];
 
+    const packMinimalPayload = () => [
+      form.elements.date.value || "",
+      form.elements.foreman.value.trim(),
+      form.elements.shift.value.trim(),
+      form.elements.tag.value.trim(),
+    ];
+
     const unpackFormData = (packed) => {
       if (!Array.isArray(packed)) return null;
-      const techPacked = Array.isArray(packed[16]) ? packed[16] : [];
-      const tech = techPacked.map((item) => ({
-        name: item[0] || "",
-        driver: item[1] || "",
-        start: item[2] || "",
-        end: item[3] || "",
-        lunch: Boolean(item[4]),
-      }));
+      const payload = {};
+      if (packed.length > 0 && packed[0]) payload.date = packed[0];
+      if (packed.length > 1 && packed[1]) payload.foreman = packed[1];
+      if (packed.length > 2 && packed[2]) payload.shift = packed[2];
+      if (packed.length > 3 && packed[3]) payload.tag = packed[3];
+      if (packed.length > 4 && packed[4]) payload.shiftStart = packed[4];
+      if (packed.length > 5 && packed[5]) payload.shiftEnd = packed[5];
+      if (packed.length > 6) payload.shiftLunch = Boolean(packed[6]);
 
-      return {
-        date: packed[0] || "",
-        foreman: packed[1] || "",
-        shift: packed[2] || "",
-        tag: packed[3] || "",
-        shiftStart: packed[4] || "",
-        shiftEnd: packed[5] || "",
-        shiftLunch: Boolean(packed[6]),
-        workersOwn: Number(packed[7] || 0),
-        workersHire: Number(packed[8] || 0),
-        workersBase: Number(packed[9] || 0),
-        workersStart: packed[10] || "",
-        workersEnd: packed[11] || "",
-        workersLunch: Boolean(packed[12]),
-        workTypes: packed[13] || "",
-        addresses: packed[14] || "",
-        note: packed[15] || "",
-        tech,
-      };
+      if (packed.length > 7) payload.workersOwn = Number(packed[7] || 0);
+      if (packed.length > 8) payload.workersHire = Number(packed[8] || 0);
+      if (packed.length > 9) payload.workersBase = Number(packed[9] || 0);
+      if (packed.length > 10 && packed[10]) payload.workersStart = packed[10];
+      if (packed.length > 11 && packed[11]) payload.workersEnd = packed[11];
+      if (packed.length > 12) payload.workersLunch = Boolean(packed[12]);
+
+      if (packed.length > 13 && packed[13]) payload.workTypes = packed[13];
+      if (packed.length > 14 && packed[14]) payload.addresses = packed[14];
+      if (packed.length > 15 && packed[15]) payload.note = packed[15];
+
+      if (packed.length > 16 && Array.isArray(packed[16]) && packed[16].length) {
+        payload.tech = packed[16].map((item) => ({
+          name: item[0] || "",
+          driver: item[1] || "",
+          start: item[2] || "",
+          end: item[3] || "",
+          lunch: Boolean(item[4]),
+        }));
+      }
+
+      return payload;
     };
 
     const applyFormData = (payload) => {
@@ -1293,81 +1271,26 @@
     };
 
     const getShareUrl = (text) => {
-      const payload = collectFormData();
-      const packed = packFormData(payload);
+      const packed = packMinimalPayload();
       const data = lzCompressToUrl(JSON.stringify(packed));
       const deepLink = getMiniAppDeepLink(data);
       return `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(text)}`;
     };
 
     const openShare = () => {
-      const text = preview.textContent.trim();
-      if (!text || text === "Заполните форму, чтобы увидеть текст отчета.") {
+      const text = buildReportText();
+      if (!text) {
         alert("Сначала заполните форму.");
         return;
       }
       window.location.href = getShareUrl(text);
     };
 
-    const copyText = async () => {
-      const text = preview.textContent.trim();
-      if (!text || text === "Заполните форму, чтобы увидеть текст отчета.") {
-        alert("Сначала заполните форму.");
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(text);
-        alert("Текст скопирован.");
-      } catch (err) {
-        alert("Не удалось скопировать текст.");
-      }
-    };
-
-    const fillSample = () => {
-      form.elements.date.value = "2026-01-16";
-      form.elements.foreman.value = "Хабиб";
-      form.elements.shift.value = "1";
-      form.elements.tag.value = "Муссо";
-      form.elements.shiftStart.value = "09:00";
-      form.elements.shiftEnd.value = "17:00";
-      form.elements.shiftLunch.checked = true;
-
-      form.elements.workersOwn.value = 3;
-      form.elements.workersHire.value = 5;
-      form.elements.workersBase.value = 2;
-      form.elements.workersStart.value = "09:00";
-      form.elements.workersEnd.value = "17:00";
-      form.elements.workersLunch.checked = true;
-
-      techList.innerHTML = "";
-      techList.appendChild(
-        createTechRow({
-          name: "JCB",
-          driver: "Хабиб",
-          start: "09:00",
-          end: "17:00",
-          lunch: true,
-        })
-      );
-
-      form.elements.workTypes.value = "доброделы уборка, расчистка проезжей части";
-      form.elements.addresses.value = `24. 13285035 Ленина, д.19,17, ✅\n25. 13285206 Ленина, д.19,17 ✅\n26. 13236354 Ленина, д.19,17 ✅\n27. 13275700 Ленина, д.19,17 ✅\n13235630 Ленина 19, ✅\n13235681 Ленина 19, ✅\n13280306 Ленина 23, ❌\n29. 13284592 Ленина, д.23, Юбилейная, д.8 ❌\n30. 13284131 Ленина, д.19,17, ❌\n\n40. 13276451 Крупской, д.12,12А,16 ❌\n41. 13268351 Крупской, д.12,12А,16 ❌\n42. 13268351 Крупской, д.12,12А,16 ❌\n13295190 Крупской, ❌\n13242008 Крупской, ❌\n13231065 Крупской, ❌\n13235704 Крупской, ❌\n13283989 Крупской, ❌\n13295190 Крупской, ❌\n13242008 Крупской, ❌\n13295190 Юбилейная 4, ❌`;
-      form.elements.note.value = "";
-
-      updatePreview();
-    };
-
     addTechButton.addEventListener("click", () => {
       techList.appendChild(createTechRow({ lunch: true }));
-      updatePreview();
     });
 
-    form.addEventListener("input", updatePreview);
-    form.addEventListener("change", updatePreview);
-
     document.getElementById("open-share").addEventListener("click", openShare);
-    document.getElementById("copy-text").addEventListener("click", copyText);
-    document.getElementById("fill-sample").addEventListener("click", fillSample);
 
     const loadedFromTelegram = loadFromTelegram();
     if (!loadedFromTelegram) {
@@ -1382,7 +1305,6 @@
     if (!techList.childElementCount) {
       techList.appendChild(createTechRow({ lunch: true }));
     }
-    updatePreview();
   </script>
 </body>
 </html>
