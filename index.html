@@ -435,6 +435,7 @@
 
     const BOT_USERNAME = "eav93tabelbot";
     const APP_SHORTNAME = "create";
+    const MAX_STARTAPP_LENGTH = 512;
 
     const createTechRow = (data = {}) => {
       const wrapper = document.createElement("div");
@@ -1212,6 +1213,18 @@
       }
     };
 
+    const getParam = (name) => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has(name)) return params.get(name) || "";
+      const hash = window.location.hash.replace(/^#/, "");
+      if (!hash) return "";
+      const hashParams = new URLSearchParams(hash);
+      return hashParams.get(name) || "";
+    };
+
+    const mergePayloadParts = (startPart, extraPart) =>
+      extraPart ? `${startPart}${extraPart}` : startPart;
+
     const loadFromTelegram = () => {
       if (!window.Telegram || !window.Telegram.WebApp) return false;
       const unsafe = window.Telegram.WebApp.initDataUnsafe;
@@ -1219,7 +1232,9 @@
       try {
         const raw = unsafe.start_param;
         const decodedParam = /%[0-9A-Fa-f]{2}/.test(raw) ? decodeURIComponent(raw) : raw;
-        const unpacked = decodePayload(decodedParam);
+        const extraParam = getParam("d");
+        const combined = mergePayloadParts(decodedParam, extraParam);
+        const unpacked = decodePayload(combined);
         if (!unpacked) return false;
         applyFormData(unpacked);
         return true;
@@ -1231,9 +1246,15 @@
     const loadFromUrl = () => {
       const params = new URLSearchParams(window.location.search);
       const encoded = params.get("data");
-      if (!encoded) return false;
+      let combined = encoded;
+      if (!combined) {
+        const startParam = params.get("startapp") || getParam("tgWebAppStartParam");
+        if (!startParam) return false;
+        const extraParam = getParam("d");
+        combined = mergePayloadParts(startParam, extraParam);
+      }
       try {
-        const unpacked = decodePayload(encoded);
+        const unpacked = decodePayload(combined);
         if (!unpacked) return false;
         applyFormData(unpacked);
         return true;
@@ -1262,8 +1283,14 @@
       }
     };
 
-    const getMiniAppDeepLink = (payload) =>
-      `https://t.me/${BOT_USERNAME}/${APP_SHORTNAME}?startapp=${payload}`;
+    const getMiniAppDeepLink = (payload) => {
+      if (payload.length <= MAX_STARTAPP_LENGTH) {
+        return `https://t.me/${BOT_USERNAME}/${APP_SHORTNAME}?startapp=${payload}`;
+      }
+      const head = payload.slice(0, MAX_STARTAPP_LENGTH);
+      const tail = payload.slice(MAX_STARTAPP_LENGTH);
+      return `https://t.me/${BOT_USERNAME}/${APP_SHORTNAME}?startapp=${head}&d=${tail}`;
+    };
 
     const getShareUrl = (text) => {
       const payload = collectFormData();
