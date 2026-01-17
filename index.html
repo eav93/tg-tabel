@@ -422,7 +422,7 @@
           <button class="ghost" type="button" id="copy-text">Скопировать текст</button>
           <button class="accent" type="button" id="fill-sample">Заполнить примером</button>
         </div>
-        <div class="footer-note">Share откроется в новом окне, а текст будет уже заполнен.</div>
+        <div class="footer-note">Share откроется в Telegram, а текст будет уже заполнен.</div>
       </section>
     </div>
   </div>
@@ -432,6 +432,9 @@
     const preview = document.getElementById("preview");
     const techList = document.getElementById("tech-list");
     const addTechButton = document.getElementById("add-tech");
+
+    const BOT_USERNAME = "eav93tabelbot";
+    const APP_SHORTNAME = "create";
 
     const createTechRow = (data = {}) => {
       const wrapper = document.createElement("div");
@@ -601,15 +604,6 @@
       return decodeURIComponent(escape(atob(base64)));
     };
 
-    const getBaseUrl = () => {
-      const { origin, pathname, href } = window.location;
-      if (origin && origin !== "null" && origin.startsWith("http")) {
-        return `${origin}${pathname}`;
-      }
-      const cleanHref = href.split("?")[0].split("#")[0];
-      return cleanHref.startsWith("http") ? cleanHref : "https://t.me";
-    };
-
     const collectFormData = () => {
       const tech = Array.from(techList.querySelectorAll(".tech-item"))
         .map((row) => {
@@ -683,6 +677,22 @@
       }
     };
 
+    const loadFromTelegram = () => {
+      if (!window.Telegram || !window.Telegram.WebApp) return false;
+      const unsafe = window.Telegram.WebApp.initDataUnsafe;
+      if (!unsafe || !unsafe.start_param) return false;
+      try {
+        const raw = unsafe.start_param;
+        const decodedParam = /%[0-9A-Fa-f]{2}/.test(raw) ? decodeURIComponent(raw) : raw;
+        const json = base64UrlDecode(decodedParam);
+        const payload = JSON.parse(json);
+        applyFormData(payload);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
+
     const loadFromUrl = () => {
       const params = new URLSearchParams(window.location.search);
       const encoded = params.get("data");
@@ -697,12 +707,14 @@
       }
     };
 
+    const getMiniAppDeepLink = (payload) =>
+      `https://t.me/${BOT_USERNAME}/${APP_SHORTNAME}?startapp=${encodeURIComponent(payload)}`;
+
     const getShareUrl = (text) => {
       const payload = collectFormData();
       const data = base64UrlEncode(JSON.stringify(payload));
-      const baseUrl = getBaseUrl();
-      const shareLink = baseUrl === "https://t.me" ? baseUrl : `${baseUrl}?data=${encodeURIComponent(data)}`;
-      return `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(text)}`;
+      const deepLink = getMiniAppDeepLink(data);
+      return `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(text)}`;
     };
 
     const openShare = () => {
@@ -774,7 +786,10 @@
     document.getElementById("copy-text").addEventListener("click", copyText);
     document.getElementById("fill-sample").addEventListener("click", fillSample);
 
-    loadFromUrl();
+    const loadedFromTelegram = loadFromTelegram();
+    if (!loadedFromTelegram) {
+      loadFromUrl();
+    }
 
     const now = new Date();
     if (form.elements.date && !form.elements.date.value) {
